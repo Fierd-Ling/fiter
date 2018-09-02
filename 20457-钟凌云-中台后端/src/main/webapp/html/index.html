@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>index</title>
+    <!--资源地址-->
+    <script src="jquery-3.3.1.js"></script>
+    <link rel="stylesheet" href="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="toastr.js"></script>
+    <link rel="stylesheet" href="toastr.css">
+    <!--js-->
+    <script type="text/javascript">
+        // 初始化页面表格数据
+       listTablePage(1, 10);
+        var NowPage = 1;
+        // 延时刷新table时间
+        var newListTableTime = 4300;
+
+        // 消息插件
+        $(function () {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "positionClass": "toast-top-left",
+                "onclick": null,
+                "showDuration": "300",
+                "hideDuration": "1000",
+                "timeOut": "3500",// 提示框存在时间 延时帅新时间设置为 4300
+                "extendedTimeOut": "2000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+        });
+        // 表单数据加载
+        function listTablePage(page, pageSize) {
+            $.ajax({
+                type: "post",
+                /* 添加这个dataType自动转换为数组类型否则依然是json串*/
+                dataType: "json",
+                url: "../customer/pageCustomer.do",
+                data: {
+                    "page": page,
+                    "pageSize": pageSize
+                },
+                success: function (pageInfo) {
+                    var listBody = $("#listBody");
+                    /*清空之前的*/
+                    listBody.empty();
+                    // 拿到pageInfo对象里面的参数
+                    var list = pageInfo.list;
+                    var pages = pageInfo.pages;
+                    var total = pageInfo.total;
+                    $("#pages").val(pages);
+                    $("#total").val(total);
+                    var length = list.length;
+                    // 修改页码
+                    $("#NowPage").val(pageInfo.pageNum);
+                    for (var x = 0; x < length; x++) {
+                        /*使用拼接*/
+                        var str = "<tr>" +
+                            "<td>" +
+                            // 删除
+                            "<span  onclick='remove(" + list[x].customerId + ")' id='a'>" +
+                            "<span class='glyphicon glyphicon-trash' aria-hidden='true'></span>" +
+                            "</span>" +
+                            // 修改
+                            "<span style='margin-right:24px;'></span>" +
+                            "<span  onclick='show(" + list[x].customerId + ")' id='a'>" +
+                            "<span class='glyphicon glyphicon-pencil' aria-hidden='true'></span>" +
+                            "</span>" +
+                            "</td>" +
+                            "<td >" + list[x].firstName + "</td>" +
+                            "<td >" + list[x].lastName + "</td>" +
+                            "<td id='Address'>" + list[x].address + "</td>" +
+                            "<td id='Email'>" + list[x].email + "</td>" +
+                            "<td >" + list[x].customerId + "</td>" +
+                            "<td >" + list[x].lastUpdateString + "</td>"
+                        "</tr>";
+                        listBody.append(str);
+                    }
+                    pageLi(pages);
+                    return pages;
+                }
+            });
+        }
+
+        // 延时刷新table
+        function newListTable() {
+            var page = $("#NowPage").val();
+            listTablePage(page, 10);
+            return;
+        }
+
+        // 删除前确认
+        function remove(customerId) {
+            // 把参数传给模态框
+            $("#deleteHaulId").val(customerId);
+            $("#aboutDelete").modal("show");
+            return;
+        }
+
+        // 确认删除
+        function deleteYes() {
+            // 关闭模态框
+            $("#aboutDelete").modal("hide");
+            var customerId = $("#deleteHaulId").val();
+            $.ajax({
+                type: "post",
+                dataType: "json",
+                data: {
+                    "customerId": customerId
+                },
+                url: "../customer/delete.do",
+                success: function (resulst) {
+                    if(resulst=="success"){
+                        toastr.success("删除成功");
+                        // 延时刷新页面
+                        setTimeout("newListTable()", newListTableTime);
+                        return;
+                    }
+                    toastr.error("删除失败");
+                    return;
+                }
+            });
+            return;
+        }
+
+        // 修改前的数据查看
+        function show(customerId) {
+            $.ajax({
+                url: "../customer/selectCustomer.do",
+                type: "post",
+                dataType: "json",
+                data: {
+                    "customerId": customerId
+                },
+                success: function (map) {
+                    var customer = map.customer;
+                    var addressList = map.addressList;
+                    var massage = '<div class="row">' + '<h4 class="modal-title">原信息如下：</h4>' + '<br>' +
+                        '<div class="col-md-6">FirstName: ' + customer.firstName + '</div>' +
+                        '<div class="col-md-6">LastName:' + customer.lastName + '</div>' +
+                        '</div><br><div class="row">' + '<input type="text" value="' + customer.customerId + '" style="display: none" id="updateId">' +
+                        '<div class="col-md-12">Eamil:' + customer.email + '</div>' +
+                        '</div><br><div class="row">' +
+                        '<div class="col-md-12">Address:' + customer.address + '</div> ' +
+                        '</div>'
+                    $("#show").empty();
+                    $("#show").append(massage);
+                    var select = ' <label>邮箱</label>' +
+                        '<input type="text" class="form-control" id="newEmail"' +
+                        'placeholder="请输入邮箱（不填写将不会修改邮箱）">' + '' +
+                        '<br> <label>地址</label><select class="form-control" id="NewAddress">' +
+                        '<option value=0> --请选则地址（不选择将不会修改地址）--</option>';
+                    for (var x = 0; x < addressList.length; x++) {
+                        select = select + '<option value=' + addressList[x].addressId + '>' + addressList[x].addressName + '</option>';
+                    }
+                    select = select + '</select>';
+                    $("#updateInput").empty();
+                    $("#updateInput").append(select);
+                    //清除原来探弹出层的提示信息
+                    $("#updateFailure").empty();
+                    $("#updateModal").modal("show");
+                    return;
+                }
+            });
+            return;
+        }
+
+        // 邮箱校验函数
+        function checkEmail(email) {
+            var reg = new RegExp("^[a-z0-9]+([._\\-]*[a-z0-9])*@([a-z0-9]+[-a-z0-9]*[a-z0-9]+.){1,63}[a-z0-9]+$");
+            // 邮箱格式不对
+            if ((email == "" || email == null) ) {
+                // 允许邮箱为空
+                return true;
+            }
+            if (!reg.test(email)) {
+                return false;
+            }
+            return true;
+        }
+
+        // 修改
+        function update() {
+            // TODO 触发时间后阻止再次提交
+            var NewAddress = ($("#NewAddress").val()).trim();
+            var NewEmail = ($("#newEmail").val()).trim();
+            var customerId = ($("#updateId").val()).trim();
+            if ((NewEmail == null || NewEmail == "") && (NewAddress == 0)) {
+                $("#updateFailure").append("邮箱和地址至少填写一个");
+                return;
+            }
+            // console.log(NewEmail);
+            var flag = checkEmail(NewEmail);
+            // 邮箱有问题
+            if ((flag == false)) {
+                $("#updateFailure").empty();
+                $("#updateFailure").append("邮箱格式不对");
+                return;
+            }
+            $.ajax({
+                url: "../customer/updateMassage.do",
+                dataType: "json",
+                type: "post",
+                data: {
+                    "addressId": NewAddress,
+                    "email": NewEmail,
+                    "customerId": customerId
+                },
+                success: function (result) {
+                    if (result == "success") {
+                        $("#updateModal").modal("hide");
+                        toastr.success("修改成功");
+                        // 延时刷新页面
+                        setTimeout("newListTable()", newListTableTime);
+                        return;
+                    }
+                    toastr.error("修改失败");
+                    return;
+                }
+            });
+        }
+
+        // 下一页
+        function Next() {
+            var NowPage = parseInt($("#NowPage").val());
+            /*需要总页数判断*/
+            var pages = parseInt($("#pages").val());
+            if (NowPage >= pages) {
+                toastr.error("已经是最后一页");
+                return;
+            }
+            var NextPage = NowPage + 1;
+            listTablePage(NextPage, 10);
+            //$("#NowPage").val(NextPage);
+            return;
+        }
+
+        // 上一页
+        function Previous() {
+            var NowPage = parseInt($("#NowPage").val());
+            if (NowPage <= 1) {
+                toastr.error("已经是第一页");
+                return;
+            }
+            var NextPage = NowPage - 1;
+            listTablePage(NextPage, 10);
+            return;
+        }
+
+        // 计算页码展示标签 countPage总页数
+        function pageLi(countPage) {
+            var nowPage = $("#NowPage").val();
+            var ulLi = $("#ulLi");
+            var str = "";
+            // 控制最多五页
+            if (countPage <= 5) {
+                str = '<li><span aria-hidden="true" onclick="Previous()">&laquo;</span></li>';
+                for (var x = 1; x <= countPage; x++) {
+                    if (x == nowPage) {
+                        str = str + '<li class="disabled"><span>' + x + '<span class="sr-only"></span></span>';
+                        continue;
+                    }
+                    str = str + '<li class="active" onclick="toPage(' + x + ')"><span>' + x + '<span class="sr-only" >' +
+                        '</span></span></li>';
+                }
+            } else {
+                // 大于5页
+                // 控制首页
+                if (nowPage > 1) {
+                    str = str + '<li class="active" onclick="toPage(1)"><span>首页<span class="sr-only" ></span></span></li>';
+                }
+                // 上一页
+                if (nowPage > 1) {
+                    str = str + '<li class="active"><span aria-hidden="true" onclick="Previous()">&laquo;</span></li>';
+                } else {
+                    str = str + '<li class="disabled"><span aria-hidden="true" onclick="Previous()">&laquo;</span></li>';
+                }
+
+                // 假如当前页码小于或者等于3
+                if (nowPage <= 3) {
+                    for (var x = 1; x <= 5; x++) {
+                        if (x == nowPage) {
+                            str = str + '<li class="disabled"><span>' + x + '<span class="sr-only"></span></span>';
+                            continue;
+                        }
+                        str = str + '<li class="active" onclick="toPage(' + x + ')"><span>' + x + '<span class="sr-only" >' +
+                            '</span></span></li>';
+                    }
+                } else {
+                    // 当前页大于3
+                    var nextPage = nowPage - 2;// 保证当前页居中
+                    // 添加头部
+                    if (countPage - nowPage <= 2) {
+                        var z = nowPage - (4 - (countPage - nowPage));
+                        for (var r = 0; r < 2 - (countPage - nowPage); r++) {
+                            str = str + '<li class="active" onclick="toPage(' + z + ')">' +
+                                '<span>' + z + '<span class="sr-only" >' +
+                                '</span></span></li>';
+                            z++;
+                        }
+                    }
+                    for (var x = 1; x <= 5; x++) {
+                        if (nowPage == nextPage) {
+                            str = str + '<li class="disabled">' +
+                                '<span>' + nowPage + '<span class="sr-only" >' +
+                                '</span></span></li>';
+                            nextPage++;
+                            continue;
+                        }
+                        // 防止超出
+                        if (nextPage > countPage) {
+                            break;
+                        }
+                        str = str + '<li class="active" onclick="toPage(' + nextPage + ')">' +
+                            '<span>' + nextPage + '<span class="sr-only" >' +
+                            '</span></span></li>';
+                        nextPage++;
+                    }
+                }
+                // 下一页
+                if (nowPage >= countPage) {
+                    str = str + '<li class="disabled"><span aria-hidden="true" onclick="Next()">&raquo;</span></li>';
+                } else {
+                    str = str + '<li class="active"><span aria-hidden="true" onclick="Next()">&raquo;</span></li>';
+                }
+                // 控制尾页
+                if (nowPage < countPage) {
+                    str = str + '<li class="active" onclick="toPage(' + countPage + ')">' +
+                        '<span>尾页<span class="sr-only" ></span></span></li>';
+                }
+            }
+            var ulLi = $("#ulLi");
+            ulLi.empty();
+            ulLi.append(str);
+        }
+        // 去到指定的页
+        function toPage(page) {
+            var x = listTablePage(page, 10);
+            $("#ulLi").empty();
+            // pageLi(x);
+            return;
+        }
+
+        // 打开新增模态框
+        function openAddModal() {
+            $.ajax({
+                type:"post",
+                dataType:"json",
+                url:"../customer/openAddModel.do",
+                success :function(map){
+                    var store=map.store;
+                    var address=map.address;
+                    $("#customerLastName").val("");
+                    $("#customerFirstName").val("");
+                    $("#customerEmail").val("");
+                    // 地址
+                    var str='<label>地址</label><select class="form-control" id="customerAddress">' +
+                        '<option value=0> --请选则地址（必选）--</option>';
+                   for(var x=0;x<address.length;x++){
+                       str = str + '<option value=' + address[x].addressId + '>' +
+                           address[x].addressName + '</option>';
+                   }
+                    str = str + '</select>'
+                    // storeId
+                    str=str+'<br><label>storeId</label><select class="form-control" id="storeId">' +
+                        '<option value=0> --请选则storeId（必选）--</option>'
+                    for(var g=0;g<store.length;g++){
+                       str=str+'<option value=' +store[g] + '>' +
+                                   store[g]+ '</option>'
+                    }
+                    str=str+ '</select>'
+                    $("#appendModal").empty();
+                    $("#appendModal").append(str);
+                    $("#addModal").modal("show");
+                    return;
+                }
+            });
+        }
+
+        function addCustomer() {
+            var email=($("#customerEmail").val()).trim();
+            var lastName=$("#customerLastName").val();
+            var firstName=$("#customerFirstName").val();
+            var address=$("#customerAddress").val();
+            var storeId=$("#storeId").val();
+            var massage=$("#addCustomerMassage");
+            // 参数校验
+           var result= checkEmail(email);
+           massage.empty();
+           if(result==false){
+               massage.append("邮箱格式不正确");
+               return;
+           }
+           if(lastName==null||lastName==""||firstName==null||firstName=="") {
+               massage.append("FirstName和LastName必填");
+               return;
+           }
+            if (firstName.replace(/\s/g, "").length ==0) {
+                massage.append("firstName不能为空格");
+                return;
+            }
+            if (lastName.replace(/\s/g, "").length ==0){
+                massage.append("LastName不能为空格");
+                return;
+
+            }
+                if(storeId==0){
+            massage.append("streId必须选择");
+            return;
+            }
+            if(address==0){
+                massage.append("地址必须选择");
+                return;
+            }
+            $.ajax({
+                type:"post",
+                dataType:"json",
+                url:"../customer/addCustomer.do",
+                data:{
+                    "email":email,
+                    "lastName":lastName,
+                    "firstName":firstName,
+                    "storeId":storeId,
+                    "addressId":address
+                },
+                success:function (result) {
+                   if(result=="success"){
+                       $("#addModal").modal("hide");
+                       toastr.success("新增成功");
+                       setTimeout("newListTable()", newListTableTime);
+                       return;
+                   }
+                    toastr.error("新增失败");
+                    return;
+                }
+            });
+            return;
+        }
+
+        // 打开退出模态框
+        function openLongOutModal() {
+            $("#longOutModal").modal("show");
+            return;
+        }
+
+        // 退出
+        function longOut() {
+            $.ajax({
+                dataType:"json",
+                url:"../customer/longOut.do",
+                type:"post",
+                success:function(){
+                    $("#longOutModal").modal("hide");
+                    window.location.href="login.html"
+                    return;
+                }
+            });
+        }
+
+
+
+    </script>
+
+    <!--css-->
+    <style type="text/css">
+        body {
+            overflow: hidden;
+            position: fixed;
+            width:100%;
+            height:100%;
+            background: url("2.jpg") no-repeat;
+            background-size:cover;
+        }
+
+
+        #box {
+            height: 430px;
+        }
+        #table {
+            width: 100%;
+            background: bisque;
+            text-align: center;
+        }
+
+        #rowTip {
+            height: 16px;
+            color: olivedrab;
+            line-height: 16px;
+            font-size: 14px;
+            background: darkgrey;
+        }
+
+        #page li:hover {
+            cursor: pointer;
+        }
+
+        a {
+        <!-- 所有的a标签去掉下划线和边框 --> border: 0;
+            text-decoration: none;
+            color: gray;
+        }
+        a:hover{
+            text-decoration: none;
+            color: red;
+        }
+
+        #a:hover {
+            color: red;
+
+        }
+
+        #lastUpdate {
+            width: 160px;
+        }
+
+        #showMassage {
+            width: 350px;
+            height: 40px;
+            color: red;
+            font-size: 20px;
+            text-align: center;
+            line-height: 40px;
+        }
+
+        #Address {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100px;
+        }
+
+        #Email {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100px;
+        }
+        #rightBox{
+            display: block;
+            width:400px;
+            height:40px ;
+            text-align: center;
+            float: right;
+            margin-top:5px;
+
+        }
+        #total{
+            width:50px;
+            text-align: center;
+            color: red;
+            border: 0;
+            background: white;
+        }
+        #pages{
+            width:50px;
+            text-align: center;
+            color: red;
+            border: 0;
+            background: white;
+        }
+        #leftBox span{
+            background: white;
+            margin-left:40px;
+            border: 0;
+        }
+        #leftBox{
+            display: block;
+            width:400px;
+            height:40px ;
+            text-align: center;
+            float: left;
+            margin-top:25px;
+            margin-left: 350px;
+        }
+        #top{
+            height:40px;
+            background: rgb(63 194 236);
+            line-height: 40px;
+            font-size: 30px;
+        }
+        #customer{
+            cursor: pointer;
+            margin-left: 900px;
+        }
+        #topMassage{
+            height:40px;
+            background: rgb(63 194 236);
+            line-height: 40px;
+            font-size: 30px;
+        }
+        #some{
+            height:45px;
+            line-height: 40px;
+            font-size: 25px;
+        }
+        #line{
+            height: 5px;
+            background: rgb(63 194 236);
+        }
+        #addBox{
+            height:45px;
+            line-height: 40px;
+        }
+        #addMassage{
+            font-size: 20px;
+            margin-left: 30px;
+        }
+        #addCustomer{
+            margin-left: 500px;
+            font-size: 20px;
+            background: rgb(63 194 236);
+            color: red;
+            cursor:pointer;
+        }
+
+        #addCustomerMassage{
+            width: 350px;
+            height: 40px;
+            color: red;
+            font-size: 20px;
+            text-align: center;
+            line-height: 40px;
+        }
+        #left{
+            margin-top: 10px;
+            width:250px;
+            height:300px;
+            position: absolute;
+        }
+        #left a{
+            display: block;
+            height:40px;
+            width: 80%;
+            font-size: 20px;
+            line-height: 40px;
+            margin-left: 10px;
+        }
+        #right{
+            float: right;
+        }
+
+
+
+    </style>
+
+</head>
+<body>
+<!--顶部-->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-2" id="topMassage">WINHERE</div>
+        <div class="col-md-10" id="top">
+            <span id="customer" class="glyphicon glyphicon-user" onclick="openLongOutModal()"></span>
+            <span id="customerIdBox"></span>
+        </div>
+    </div>
+
+    <div id="left">
+        <a href="index.html"><span class="glyphicon glyphicon-th-list"></span>Customer管理<span id="right">  > </span></a>
+        <a href="film.html"><span class="glyphicon glyphicon-th-list"></span>Film设置<span id="right">  > </span></a>
+    </div>
+    <div class="row">
+        <div class="col-md-2" id=""> </div>
+        <div class="col-md-10" id="some">客户管理</div>
+        </div>
+    </div>
+<div class="row">
+    <div class="col-md-2" > </div>
+    <div class="col-md-10" id="line"></div>
+</div>
+
+<div class="row">
+    <div class="col-md-2" > </div>
+    <div class="col-md-10" id="addBox">
+        <span id="addMassage">客户列表</span>
+        <span id="addCustomer" onclick="openAddModal()">新增</span>
+    </div>
+</div>
+</div>
+
+</div>
+
+<!--表格-->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-2"></div>
+        <div class="col-md-10" id="box" ><!--style="border:1px solid red;"-->
+            <table class="table table-striped" id="table">
+                <tr id="rowTip">
+                    <td id="op">操作</td>
+                    <td>FirstName</td>
+                    <td>LastName</td>
+                    <td id="Address">Address</td>
+                    <td id="Email">Email</td>
+                    <td>CustomerId</td>
+                    <td id="lastUpdate">LastUpdate</td>
+                </tr>
+                <tbody id="listBody"></tbody>
+            </table>
+        </div>
+        <nav aria-label="Page navigation" id="page">
+            <span class="pagination">
+
+            </span>
+        </nav>
+    </div>
+</div>
+
+<!--修改模态框-->
+<div class="modal" id="updateModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+     data-backdrop="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span><span class="sr-only">Close</span>
+                </button>
+                <h3 class="modal-title">修改Customer</h3>
+            </div>
+            <div class="modal-header" id="show">
+            </div>
+            <div class="modal-body" id="updateInput">
+            </div>
+            <div class="modal-footer">
+
+                <div id="showMassage">
+                    <!--弹出层信息展示模块提示邮箱问题-->
+                    <span id="updateFailure"></span>
+                </div>
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary"
+                        onclick="update()">修改
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 模态框 信息删除确认 -->
+<div class="modal fade" id="aboutDelete" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+     data-backdrop="false">
+    <div class="modal-dialog">
+        <div class="modal-content message_align">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"
+                        aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+                <h2 class="modal-title" style="color: red">注意！</h2>
+            </div>
+            <!-- 隐藏需要删除的id -->
+            <input type="hidden" id="deleteHaulId"/>
+            <div class="modal-body">
+                <p style="color: red">您确认要删除该条信息吗？</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default"
+                        data-dismiss="modal">取消
+                </button>
+                <button id="button" type="button" class="btn btn-primary"
+                        onclick="deleteYes()">确认
+                </button>
+            </div>
+        </div>
+        <!-- /.modal-content -->
+    </div>
+</div>
+<!-- /.modal-dialog -->
+</div>
+<nav aria-label="Page navigation" id="pageUlLi">
+    <!--存储当前页码-->
+    <span class="pagination" id="leftBox">
+
+            <input type="text" value=1 id="NowPage" style="display: none">
+            <li>
+                <span>总共<input type="text" value=0 id="total" disabled>条记录</span>
+            </li>
+            <li>
+                <span>总共<input type="text" value=0 id="pages" disabled>页</span>
+            </li>
+    </span>
+    <!--页面导航栏-->
+    <span id="rightBox">
+        <ul class="pagination" id="ulLi">
+        </ul>
+    </span>
+
+    <!--新增模态框--->
+    <div class="modal" id="addModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+         data-backdrop="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span aria-hidden="true">&times;</span><span class="sr-only">Close</span>
+                    </button>
+                    <h3 class="modal-title">新增Customer</h3>
+                </div>
+                <div class="modal-body" id="addInput">
+                    <label>FirstName</label>
+                    <input type="text" class="form-control" id="customerFirstName"
+                           placeholder="FirstName（必填）">
+                    <br>
+                    <label>LastName</label>
+                    <input type="text" class="form-control" id="customerLastName"
+                           placeholder="LastName（必填）">
+                    <br>
+                    <label>Email</label>
+                    <input type="text" class="form-control" id="customerEmail"
+                           placeholder="邮箱（可不填写）">
+                    <br>
+                    <div id="appendModal"></div>
+                </div>
+                <div class="modal-footer">
+                    <div id="addCustomerMassage">
+                    </div>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary"
+                            onclick="addCustomer()">保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</nav>
+
+<!--退出-->
+<div class="modal fade" id="longOutModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+     data-backdrop="false">
+    <div class="modal-dialog">
+        <div class="modal-content message_align">
+            <div class="modal-body">
+                <p style="color: red">确认退出？</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default"
+                        data-dismiss="modal">取消
+                </button>
+                <button  type="button" class="btn btn-primary"
+                        onclick="longOut()">退出
+                </button>
+            </div>
+        </div>
+        <!-- /.modal-content -->
+    </div>
+</div>
+<!-- /.modal-dialog -->
+
+</body>
+<!--html和样式需要在js之前加载-->
+<script type="text/javascript">
+    getUser();
+    function getUser() {
+        $.ajax({
+            type: "post",
+            dataType:"json",
+            url:"../customer/getUserName.do",
+            success: function (user) {
+                console.log(user);
+                $("#customerIdBox").empty();
+                $("#customerIdBox").append(user);
+                return;
+            }
+        });
+        return;
+    }
+</script>
+</html>

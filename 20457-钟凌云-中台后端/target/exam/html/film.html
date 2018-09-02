@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<script src="jquery-3.3.1.js"></script>
+<script type="text/javascript">
+    function longOut() {
+        $.ajax({
+            dataType:"json",
+            url:"../customer/longOut.do",
+            type:"post",
+            success:function(){
+                alert("退出成功");
+                return;
+            }
+        });
+    }
+     function test() {
+        alert("请求将被拒绝，请看控制台");
+        $.ajax({
+            type:"post",
+            dataType:"json",
+            url:"../customer/test.do",
+            complete: function(xhr,status){
+                var sessionStatus = xhr.getResponseHeader('sessionStatus');
+                if(sessionStatus == 'error') {
+                    alert("请求被拒绝控制台403，即将进入登录页面");
+                    window.location.href="login.html";
+                    return;
+                }
+            }
+        });
+
+    }
+
+</script>
+
+<style type="text/css">
+    a {
+    <!-- 所有的a标签去掉下划线和边框 --> border: 0;
+        text-decoration: none;
+        color: gray;
+    }
+    a:hover{
+        text-decoration: none;
+        color: red;
+    }
+
+    #a:hover {
+        color: red;
+
+    }
+    #left{
+        margin-top: 10px;
+        width:250px;
+        height:300px;
+        position: absolute;
+    }
+    #left a{
+        display: block;
+        height:40px;
+        width: 80%;
+        font-size: 20px;
+        line-height: 40px;
+        margin-left: 10px;
+        border:1px solid red;
+    }
+    #right{
+        float: right;
+    }
+
+    #testBox{
+        width: 60px;
+        height: 40px;
+        font-size: 25px;
+        margin-top:100px;
+        margin-left: 500px;
+        border:1px solid red;
+    }
+    button:hover{
+        cursor: pointer;
+    }
+    #loginOut{
+        width: 120px;
+        height: 40px;
+        font-size: 25px;
+        border:1px solid red;
+    }
+
+
+</style>
+<body>
+欢迎来到电影页面
+<div id="left">
+    <a href="index.html"><span class="glyphicon glyphicon-th-list"></span>Customer管理<span id="right">  > </span></a>
+    <a href="film.html><span class="glyphicon glyphicon-th-list"></span>Film设置<span id="right">  > </span></a>
+</div>
+<br>
+ <input type="button" value="test" id="testBox" onclick="test()">
+<input type="button" value="loginOut" id="loginOut" onclick="longOut()">
+<p>测试未登录的状态下ajax请求被拒绝（控制台403)(先点击退出按钮)</p>
+</body>
+</html>

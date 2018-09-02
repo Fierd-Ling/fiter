@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>long page</title>
+    <!--资源地址-->
+    <script src="jquery-3.3.1.js"></script>
+    <link rel="stylesheet" href="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="toastr.js"></script>
+    <link rel="stylesheet" href="toastr.css">
+    <!--js-->
+    <script type="text/javascript">
+
+
+        // 消息插件
+        $(function () {
+            toastr.options = {
+                "closeButton": false,
+                "debug": false,
+                "positionClass": "toast-top-left",
+                "onclick": null,
+                "showDuration": "300",
+                "hideDuration": "1000",
+                "timeOut": "3500",// 提示框存在时间 延时帅新时间设置为 4300
+                "extendedTimeOut": "2000",
+                "showEasing": "swing",
+                "hideEasing": "linear",
+                "showMethod": "fadeIn",
+                "hideMethod": "fadeOut"
+            }
+        });
+
+            // 登陆验证
+            function login() {
+                var password=($("#userPassword").val()).trim();
+                var userName=($("#userName").val()).trim();
+                // TODO 前端数据校验
+                if(userName==""||userName==null){
+                    $("#longMassage").empty();
+                    $("#longMassage").append("FirstName不能为空");
+                    return;
+                }
+                if(password==""||password==null){
+                    $("#longMassage").empty();
+                    $("#longMassage").append("LastName不能为空");
+                    return;
+                }
+                $("#longMassage").empty();
+                $.ajax({
+                    url:"../customer/long.do",
+                    dataType:"json",
+                    type:"post",
+                    data:{
+                        lastName:password,
+                        firstName:userName
+                    },
+                    success :function (result) {
+                        console.log(result);
+                        if(result=="success"){
+                            window.location.href="index.html";
+                            return;
+                        }
+                        if(result=="failure"){
+                            toastr.error("用户名或密码错误")
+                        }
+                        // 清空数据
+                        $("#userName").val("");
+                        $("#userPassword").val("");
+                        return;
+                    }
+                });
+
+            }
+    </script>
+
+    <style type="text/css">
+        body {
+            overflow: hidden;
+            position: fixed;
+            width:100%;
+            height:100%;
+            background: url("1.jpg") no-repeat;
+            background-size:cover;
+        }
+        #longBox{
+            margin-top: 70px;
+            height: 300px;
+        }
+        #longButton{
+            margin:  10px 190px;
+            background: green;
+            color: red;
+        }
+        #longMassage{
+            width:300px;
+            height: 30px;
+            margin: auto;
+            font-size: 25px;
+            color: red;
+            text-align: center;
+            line-height: 30px;
+        }
+        #create{
+            font-size: 30px;
+            color: blueviolet;
+        }
+    </style>
+
+
+</head>
+
+<br>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-4" id="create">20457-钟凌云</div>
+        <div class="col-md-4" style="background: white;" id="longBox">
+            <form>
+                <br>
+                <div class="form-group">
+                    <label for="userName">FirstName</label>
+                    <input type="email" class="form-control" id="userName" placeholder="FirstName">
+                </div>
+                <br>
+                <div class="form-group">
+                    <label for="userPassword">LastName</label>
+                    <input type="password" class="form-control" id="userPassword" placeholder="LastName">
+                </div>
+                <div id="longMassage"></div>
+                <button type="button" class="btn btn-default" onclick="login()" id="longButton">登录</button>
+            </form>
+        </div>
+        <div class="col-md-4"></div>
+    </div>
+</div>
+
+</body>
+</html>

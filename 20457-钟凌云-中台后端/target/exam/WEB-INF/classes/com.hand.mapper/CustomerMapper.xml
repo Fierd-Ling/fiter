@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hand.mapper.CustomerMapper">
+    <resultMap id="BaseResultMap" type="com.hand.pojo.Customer">
+        <result column="customer_id" jdbcType="SMALLINT" property="customerId"/>
+        <result column="store_id" jdbcType="TINYINT" property="storeId"/>
+        <result column="first_name" jdbcType="VARCHAR" property="firstName"/>
+        <result column="last_name" jdbcType="VARCHAR" property="lastName"/>
+        <result column="email" jdbcType="VARCHAR" property="email"/>
+        <result column="address_id" jdbcType="SMALLINT" property="addressId"/>
+        <result column="active" property="active"/>
+        <result column="create_date" jdbcType="TIMESTAMP" property="createDate"/>
+        <result column="last_update" jdbcType="TIMESTAMP" property="lastUpdate"/>
+        <result column="address" jdbcType="VARCHAR" property="address"></result>
+    </resultMap>
+
+    <!--新增一条customer信息-->
+    <insert id="addCustomer" parameterType="com.hand.pojo.Customer">
+        INSERT INTO customer(store_id,first_name,last_name,
+        <if test="email!=null and email!=''">
+            email,
+        </if>
+        address_id,create_date,last_update) values(
+        #{storeId},#{firstName},#{lastName},
+        <if test="email!=null and email!=''">
+            #{email},
+        </if>
+        #{addressId},#{createDateString},#{lastUpdateString}
+        );
+
+
+    </insert>
+
+
+    <!--customer表能够跟新的只有邮箱地址和最后跟新时间-->
+    <update id="updateCustomer" parameterType="com.hand.pojo.Customer" keyProperty="java.lang.Integer">
+        update  customer
+        <trim prefix="set" suffixOverrides=",">
+        <if test="addressId!=0">address_id=#{addressId},</if>
+        <if test="email!=null and email!=''">email=#{email},</if>
+    </trim>
+        ,last_update= #{lastUpdateString}
+    WHERE customer_id=#{customerId}
+    </update>
+
+
+<!--删除外检关联数据（依次调用）-->
+    <delete id="deleteRental">
+    delete from rental where customer_id= #{customerId}
+    </delete>
+    <delete id="deletePayment">
+        delete from payment where customer_id= #{customerId}
+    </delete>
+    <delete id="deleteCustomer">
+        delete from customer where customer_id=#{customerId}
+    </delete>
+    <!--end-->
+
+
+    <!--登录验证sql-->
+    <select id="countCustomerByMassage" resultType="java.lang.Integer" parameterType="com.hand.pojo.Customer">
+        SELECT count(*) from customer where last_name=#{lastName}and first_name=#{firstName}
+    </select>
+
+    <!--查询所有可用的customer信息-->
+    <select id="listCustomer" resultMap="BaseResultMap">
+        select last_name,address,first_name,email,customer_id,customer.last_update  from address,customer
+        where address.address_id=customer.address_id and active=1 ORDER BY customer.create_date DESC
+    </select>
+
+    <!--查询一条customer数据-->
+    <!--此处只能用resultMap接收返回值否则实体和数据库表字段不对应无法取到数据-->
+    <select id="selectCustomerById" resultMap="BaseResultMap">
+        select last_name,address,first_name,email,customer_id,customer.last_update from
+        address,customer where address.address_id=customer.address_id
+        and active=1 and customer_id=#{customerId}
+    </select>
+
+    <!--查找所有的store_id-->
+    <select id="listStorid" resultType="java.lang.Integer">
+        select store_id from store
+    </select>
+
+
+</mapper>
